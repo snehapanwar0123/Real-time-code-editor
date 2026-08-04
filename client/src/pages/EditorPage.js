@@ -18,9 +18,15 @@ import OutputPanel from "../components/OutputPanel";
 import "../styles/editor.css";
 
 function EditorPage() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { roomId } = useParams();
+const navigate = useNavigate();
+const location = useLocation();
+const { roomId } = useParams();
+
+if (!location.state) {
+  return <Navigate to="/" />;
+}
+
+const username = location.state.username;
 
   const socketRef = useRef(null);
 
@@ -28,7 +34,7 @@ function EditorPage() {
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("cpp");
   const [input, setInput] = useState("");
-  const [output, setOutput] = useState("");
+ const [output] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -40,12 +46,12 @@ function EditorPage() {
       });
 
       socketRef.current.on(
-        ACTIONS.JOINED,
-        ({ clients, username }) => {
+      ACTIONS.JOINED,
+      ({ clients, username: joinedUsername }) => {
           setClients(clients);
 
-          if (username !== location.state?.username) {
-            toast.success(`${username} joined the room 🚀`);
+          if (joinedUsername !== username) {
+            toast.success(`${joinedUsername} joined the room 🚀`);
           }
         }
       );
@@ -70,7 +76,7 @@ function EditorPage() {
 
       socketRef.current.emit(ACTIONS.JOIN, {
         roomId,
-        username: location.state?.username,
+        username: username,
       });
     };
 
@@ -84,11 +90,9 @@ function EditorPage() {
         socketRef.current.disconnect();
       }
     };
-  }, [roomId]);
+  },  [roomId, username]);
 
-  if (!location.state) {
-    return <Navigate to="/" />;
-  }
+  
 
   const copyRoomId = async () => {
     try {
