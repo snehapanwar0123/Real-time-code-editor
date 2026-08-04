@@ -6,68 +6,73 @@ import {
   useParams,
 } from "react-router-dom";
 
-import Client from "./Client";
-import Editor from "./Editor";
+import Client from "../components/Client";
+import Editor from "../components/Editor";
+import Toolbar from "../components/Toolbar";
 
-import { initSocket } from "../Socket";
-import { ACTIONS } from "../Actions";
+import { toast } from "react-toastify";
+import { initSocket } from "../socket/Socket";
+import { ACTIONS } from "../constants/Actions";
 
 function EditorPage() {
-  const [clients, setClients] = useState([]);
-
-  const socketRef = useRef(null);
-  const codeRef = useRef("");
-
   const navigate = useNavigate();
   const location = useLocation();
   const { roomId } = useParams();
+
+  const socketRef = useRef(null);
+
+  const [clients, setClients] = useState([]);
+  const [code, setCode] = useState("");
+  const [language, setLanguage] = useState("cpp");
 
   useEffect(() => {
     const init = async () => {
       socketRef.current = await initSocket();
 
-      socketRef.current.emit(ACTIONS.JOIN, {
-        roomId,
-        username: location.state?.username,
+      // Listen for code updates FIRST
+      socketRef.current.on(ACTIONS.CODE_CHANGE, ({ code }) => {
+        setCode(code || "");
       });
 
       socketRef.current.on(
         ACTIONS.JOINED,
-        ({ clients, username, socketId }) => {
-          if (username !== location.state?.username) {
-            alert(`${username} joined the room`);
-          }
-
+        ({ clients, username }) => {
           setClients(clients);
 
-          // Send current code to the newly joined client
-          socketRef.current.emit(ACTIONS.SYNC_CODE, {
-            socketId,
-            code: codeRef.current,
-          });
+          if (username !== location.state?.username) {
+            toast.success(`${username} joined the room 🚀`);
+          }
         }
       );
 
       socketRef.current.on(
         ACTIONS.DISCONNECTED,
         ({ socketId, username }) => {
-          alert(`${username} left the room`);
+          toast.info(`${username} left the room`);
 
           setClients((prev) =>
             prev.filter((client) => client.socketId !== socketId)
           );
         }
       );
+
+      socketRef.current.emit(ACTIONS.JOIN, {
+        roomId,
+        username: location.state?.username,
+      });
     };
 
     init();
 
     return () => {
       if (socketRef.current) {
+        socketRef.current.off(ACTIONS.CODE_CHANGE);
+        socketRef.current.off(ACTIONS.JOINED);
+        socketRef.current.off(ACTIONS.DISCONNECTED);
         socketRef.current.disconnect();
       }
     };
-  }, [roomId, location.state, navigate]);
+  }, [roomId]);
 
   if (!location.state) {
     return <Navigate to="/" />;
@@ -76,20 +81,18 @@ function EditorPage() {
   const copyRoomId = async () => {
     try {
       await navigator.clipboard.writeText(roomId);
-      alert("Room ID copied");
-    } catch (err) {
-      alert("Failed to copy Room ID");
+      toast.success("Room ID copied!");
+    } catch {
+      toast.error("Couldn't copy Room ID");
     }
-  };
-
-  const leaveRoom = () => {
-    navigate("/");
   };
 
   return (
     <div className="container-fluid vh-100">
       <div className="row h-100">
+
         <div className="col-md-2 bg-dark text-light d-flex flex-column p-3">
+
           <h4>CodeCast</h4>
 
           <hr />
@@ -106,6 +109,7 @@ function EditorPage() {
           </div>
 
           <div className="mt-auto">
+
             <button
               className="btn btn-success w-100 mb-2"
               onClick={copyRoomId}
@@ -115,22 +119,35 @@ function EditorPage() {
 
             <button
               className="btn btn-danger w-100"
-              onClick={leaveRoom}
+              onClick={() => navigate("/")}
             >
               Leave Room
             </button>
+
           </div>
+
         </div>
 
         <div className="col-md-10 p-0">
+
+          <Toolbar
+            language={language}
+            setLanguage={setLanguage}
+            onRun={() => {}}
+            onCopy={() => navigator.clipboard.writeText(code)}
+            onDownload={() => {}}
+          />
+
           <Editor
-          socketRef={socketRef}
-          roomId={roomId}
-          onCodeChange={(code) => {
-            codeRef.current = code;
-          }}
-        />
+            socketRef={socketRef}
+            roomId={roomId}
+            code={code}
+            setCode={setCode}
+            language={language}
+          />
+
         </div>
+
       </div>
     </div>
   );

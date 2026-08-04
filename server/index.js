@@ -23,6 +23,7 @@ const io = new Server(server, {
 });
 
 const userSocketMap = {};
+const roomCodeMap = {};
 
 function getAllConnectedClients(roomId) {
   return Array.from(io.sockets.adapter.rooms.get(roomId) || []).map(
@@ -43,6 +44,7 @@ io.on("connection", (socket) => {
 
     const clients = getAllConnectedClients(roomId);
 
+    // Notify everyone
     clients.forEach(({ socketId }) => {
       io.to(socketId).emit("joined", {
         clients,
@@ -50,16 +52,17 @@ io.on("connection", (socket) => {
         socketId: socket.id,
       });
     });
-  });
 
-  socket.on("code-change", ({ roomId, code }) => {
-    socket.in(roomId).emit("code-change", {
-      code,
+    // Send latest code ONLY to the newly joined user
+    io.to(socket.id).emit("code-change", {
+      code: roomCodeMap[roomId] || "",
     });
   });
 
-  socket.on("sync-code", ({ socketId, code }) => {
-    io.to(socketId).emit("code-change", {
+  socket.on("code-change", ({ roomId, code }) => {
+    roomCodeMap[roomId] = code;
+
+    socket.to(roomId).emit("code-change", {
       code,
     });
   });
@@ -72,6 +75,12 @@ io.on("connection", (socket) => {
         socketId: socket.id,
         username: userSocketMap[socket.id],
       });
+
+      const room = io.sockets.adapter.rooms.get(roomId);
+
+      if (!room || room.size === 1) {
+        delete roomCodeMap[roomId];
+      }
     });
 
     delete userSocketMap[socket.id];
