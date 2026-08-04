@@ -33,12 +33,18 @@ function EditorPage() {
 
       socketRef.current.on(
         ACTIONS.JOINED,
-        ({ clients, username }) => {
+        ({ clients, username, socketId }) => {
           if (username !== location.state?.username) {
             alert(`${username} joined the room`);
           }
 
           setClients(clients);
+
+          // Send current code to the newly joined client
+          socketRef.current.emit(ACTIONS.SYNC_CODE, {
+            socketId,
+            code: codeRef.current,
+          });
         }
       );
 

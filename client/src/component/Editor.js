@@ -8,12 +8,13 @@ function Editor({ socketRef, roomId, onCodeChange }) {
     if (!socketRef.current) return;
 
     const handleCodeChange = ({ code }) => {
-      setCode(code);
+        if (code !== null) {
+            setCode(code);
 
-      // IMPORTANT
-      if (onCodeChange) {
-        onCodeChange(code);
-      }
+            if (onCodeChange) {
+                onCodeChange(code);
+            }
+        }
     };
 
     socketRef.current.on(ACTIONS.CODE_CHANGE, handleCodeChange);
