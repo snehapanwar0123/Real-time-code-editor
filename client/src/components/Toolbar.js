@@ -1,4 +1,5 @@
 import React from "react";
+import { LANGUAGES } from "../constants/languages";
 
 function Toolbar({
   language,
@@ -20,16 +21,19 @@ function Toolbar({
     >
       <div style={{ display: "flex", gap: "12px" }}>
         <select
-          className="form-select"
-          style={{ width: "170px" }}
-          value={language}
-          onChange={(e) => setLanguage(e.target.value)}
+            className="form-select"
+            style={{ width: "180px" }}
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
         >
-          <option value="cpp">C++</option>
-          <option value="c">C</option>
-          <option value="python">Python</option>
-          <option value="java">Java</option>
-          <option value="javascript">JavaScript</option>
+            {LANGUAGES.map((lang) => (
+                <option
+                    key={lang.id}
+                    value={lang.value}
+                >
+                    {lang.label}
+                </option>
+            ))}
         </select>
 
         <button

@@ -66,6 +66,11 @@ io.on("connection", (socket) => {
       code,
     });
   });
+  socket.on("language-change", ({ roomId, language }) => {
+  socket.to(roomId).emit("language-change", {
+    language,
+  });
+});
 
   socket.on("disconnecting", () => {
     const rooms = [...socket.rooms];

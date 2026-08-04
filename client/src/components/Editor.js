@@ -24,7 +24,7 @@ function CodeEditor({
 
   return (
     <MonacoEditor
-      height="calc(100vh - 60px)"
+      height="100%"
       language={language}
       theme="vs-dark"
       value={code}

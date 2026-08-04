@@ -13,6 +13,9 @@ import Toolbar from "../components/Toolbar";
 import { toast } from "react-toastify";
 import { initSocket } from "../socket/Socket";
 import { ACTIONS } from "../constants/Actions";
+import InputPanel from "../components/InputPanel";
+import OutputPanel from "../components/OutputPanel";
+import "../styles/editor.css";
 
 function EditorPage() {
   const navigate = useNavigate();
@@ -24,6 +27,8 @@ function EditorPage() {
   const [clients, setClients] = useState([]);
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("cpp");
+  const [input, setInput] = useState("");
+  const [output, setOutput] = useState("");
 
   useEffect(() => {
     const init = async () => {
@@ -44,6 +49,13 @@ function EditorPage() {
           }
         }
       );
+      socketRef.current.on(
+        ACTIONS.LANGUAGE_CHANGE,
+        ({ language }) => {
+          setLanguage(language);
+        }
+      );
+
 
       socketRef.current.on(
         ACTIONS.DISCONNECTED,
@@ -88,8 +100,8 @@ function EditorPage() {
   };
 
   return (
-    <div className="container-fluid vh-100">
-      <div className="row h-100">
+   <div className="container-fluid ide-container">
+      <div className="row ide-main">
 
         <div className="col-md-2 bg-dark text-light d-flex flex-column p-3">
 
@@ -128,23 +140,61 @@ function EditorPage() {
 
         </div>
 
-        <div className="col-md-10 p-0">
+        <div className="col-md-10 editor-column">
 
           <Toolbar
             language={language}
-            setLanguage={setLanguage}
+            setLanguage={(newLanguage) => {
+              setLanguage(newLanguage);
+
+              socketRef.current.emit(ACTIONS.LANGUAGE_CHANGE, {
+                roomId,
+                language: newLanguage,
+              });
+            }}
             onRun={() => {}}
             onCopy={() => navigator.clipboard.writeText(code)}
             onDownload={() => {}}
           />
 
-          <Editor
-            socketRef={socketRef}
-            roomId={roomId}
-            code={code}
-            setCode={setCode}
-            language={language}
-          />
+          <div className="editor-wrapper">
+            <Editor
+              socketRef={socketRef}
+              roomId={roomId}
+              code={code}
+              setCode={setCode}
+              language={language}
+            />
+          </div>
+
+          <div className="bottom-panels">
+
+            <div className="panel">
+              <div className="panel-header">
+                Input
+              </div>
+
+              <div className="panel-body">
+                <InputPanel
+                  input={input}
+                  setInput={setInput}
+                />
+              </div>
+            </div>
+
+            <div className="panel">
+              <div className="panel-header">
+                Output
+              </div>
+
+              <div className="panel-body">
+                <OutputPanel
+                  output={output}
+                />
+              </div>
+            </div>
+
+          </div>
 
         </div>
 
